@@ -82,7 +82,7 @@ class OrderCompleteSubscriber extends AutoService implements EventSubscriberInte
       ];
 
       // Update the membership type with the LineItem membership_type_id for potential membership type changes during renewals
-      $preChangeMembership = LineItem::get(FALSE)
+      $membershipLineItem = LineItem::get(FALSE)
         ->addSelect('price_field_value.membership_type_id', 'membership_num_terms')
         ->addJoin('PriceFieldValue AS price_field_value', 'LEFT')
         ->addWhere('contribution_id', '=', $contributionID)
@@ -90,8 +90,8 @@ class OrderCompleteSubscriber extends AutoService implements EventSubscriberInte
         ->addWhere('contribution_id.contact_id', '=', $membershipParams['contact_id'])
         ->execute()
         ->first();
-      if (!empty($preChangeMembership) && !empty($preChangeMembership['price_field_value.membership_type_id'])) {
-        $membershipParams['membership_type_id'] = $preChangeMembership['price_field_value.membership_type_id'];
+      if (!empty($membershipLineItem) && !empty($membershipLineItem['price_field_value.membership_type_id'])) {
+        $membershipParams['membership_type_id'] = $membershipLineItem['price_field_value.membership_type_id'];
       }
       if (empty($membership['end_date']) || (int) $membership['status_id'] !== \CRM_Core_PseudoConstant::getKey('CRM_Member_BAO_Membership', 'status_id', 'Pending')) {
         // Passing num_terms to the api triggers date calculations, but for pending memberships these may be already calculated.
@@ -100,7 +100,7 @@ class OrderCompleteSubscriber extends AutoService implements EventSubscriberInte
         // ... except testCompleteTransactionMembershipPriceSetTwoTerms hits this line so the above is obviously not true....
 
         // default of 1 is precautionary
-        $membershipParams['num_terms'] = empty($preChangeMembership['membership_num_terms']) ? 1 : $preChangeMembership['membership_num_terms'];
+        $membershipParams['num_terms'] = empty($membershipLineItem['membership_num_terms']) ? 1 : $membershipLineItem['membership_num_terms'];
       }
 
       if ('Pending' === $membership['status_id:name']) {
